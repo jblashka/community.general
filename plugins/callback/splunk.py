@@ -80,6 +80,7 @@ import getpass
 
 from datetime import datetime
 from os.path import basename
+from time import time
 
 from ansible.module_utils.urls import open_url
 from ansible.parsing.ajson import AnsibleJSONEncoder
@@ -116,7 +117,7 @@ class SplunkHTTPCollectorSource(object):
         data['uuid'] = result._task._uuid
         data['session'] = self.session
         data['status'] = state
-        data['timestamp'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S '
+        data['timestamp'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f '
                                                        '+0000')
         data['host'] = self.host
         data['ip_address'] = self.ip_address
@@ -131,8 +132,11 @@ class SplunkHTTPCollectorSource(object):
         data['ansible_result'] = result._result
 
         # This wraps the json payload in and outer json event needed by Splunk
-        jsondata = json.dumps(data, cls=AnsibleJSONEncoder, sort_keys=True)
-        jsondata = '{"event":' + jsondata + "}"
+        wrapper = {}
+        wrapper['event'] = data
+        wrapper['host'] = self.host
+        wrapper['time'] = time()
+        jsondata = json.dumps(wrapper, cls=AnsibleJSONEncoder, sort_keys=True)
 
         open_url(
             url,
